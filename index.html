@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Mata-Mata de Atrizes GLs</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+<style>
+body { margin:0; font-family:'Poppins',sans-serif; background:#0a0a0a; color:#fff; text-align:center; overflow-x:hidden;}
+h1 { margin-top:2vh; font-size:4vw; }
+#round-title { margin-top:1vh; font-size:2vw; }
+.series-container { display:flex; justify-content:center; flex-wrap:wrap; gap:3vw; margin-top:3vh; }
+.series-card { cursor:pointer; width:18vw; max-width:180px; transition:transform 0.3s, opacity 0.5s, box-shadow 0.3s; border-radius:12px; overflow:hidden; border:2px solid #444; background:#2b2b2b;}
+.series-card:hover { transform:scale(1.1); box-shadow:0 0 25px #FFD700,0 0 50px #FF4500; }
+.series-card img { width:100%; display:block; border-bottom:2px solid #444; }
+.series-card p { margin:0.5em 0; font-size:1em; font-weight:bold; }
+button { margin-top:2vh; padding:1em 2em; font-size:1em; border-radius:8px; border:none; background:#FFD700; color:#0a0a0a; cursor:pointer; font-weight:bold; transition: transform 0.2s, box-shadow 0.2s; }
+button:hover { transform:scale(1.05); box-shadow:0 0 20px #FFD700; }
+#winner-container { position:relative; margin-top:3vh; text-align:center; animation:fadeIn 1.5s forwards; display:none;}
+#winner-trophy { width:15vw; max-width:150px; margin-bottom:1vh; animation:glow 1.5s infinite alternate; }
+#winner-series-img { width:18vw; max-width:220px; border-radius:12px; box-shadow:0 0 40px #FFD700,0 0 60px #FF4500; animation:winnerGlow 1.5s infinite alternate; }
+#winner-name { font-size:6vw; max-font-size:56px; color:#FFD700; font-weight:bold; margin-top:2vh; text-shadow:0 0 20px #FFD700,0 0 30px #FF4500; }
+table { margin:3vh auto; border-collapse:collapse; width:90%; }
+th, td { border:1px solid #555; padding:0.5em 1em; font-size:0.9em; }
+th { background:#333; color:#FFD700; }
+td { background:#2b2b2b; }
+.firework, .particle { position:absolute; border-radius:50%; pointer-events:none; }
+.firework { width:2vw; height:2vw; max-width:14px; max-height:14px; animation:explode 1s ease-out forwards; }
+.particle { width:1vw; height:1vw; max-width:6px; max-height:6px; animation:fall 2s linear forwards; }
+@keyframes explode {0%{transform:scale(1);opacity:1;}100%{transform:translate(var(--x),var(--y)) scale(0);opacity:0;} }
+@keyframes fall {0%{transform:translateY(0);opacity:1;}100%{transform:translateY(700px);opacity:0;} }
+@keyframes fadeIn {from{opacity:0;}to{opacity:1;} }
+@keyframes glow {from{filter:drop-shadow(0 0 10px #FFD700);}to{filter:drop-shadow(0 0 35px #FFD700);} }
+@keyframes winnerGlow {from{box-shadow:0 0 30px #FFD700,0 0 50px #FF4500;}to{box-shadow:0 0 60px #FFD700,0 0 90px #FF4500;} }
+@media(max-width:768px){h1{font-size:6vw;}#round-title{font-size:4vw;}.series-card{width:40vw;}#winner-trophy{width:30vw;margin-bottom:2vw;}#winner-series-img{width:35vw;margin:1vw;}#winner-name{font-size:10vw;}table{font-size:0.8em;} }
+</style>
+</head>
+<body>
+<h1>Mata-Mata de Atrizes GLs</h1>
+
+<!-- Setup -->
+<div id="setup-container">
+  <label>Número de jogadores:</label>
+  <select id="num-players">
+    <option value="1">1</option>
+    <option value="2">2</option>
+  </select>
+  <div id="player-names-container"></div>
+  <button id="start-game-btn">Iniciar Jogo</button>
+</div>
+
+<div id="round-title"></div>
+<div class="series-container" id="series-container"></div>
+
+<!-- Winner -->
+<div id="winner-container">
+  <img id="winner-trophy" src="https://i.imgur.com/h6RPr51.png" alt="Troféu">
+  <img id="winner-series-img" src="" alt="Atriz Vencedora">
+  <div id="winner-name"></div>
+  <button onclick="resetGame()" id="back-btn" style="display:none;">Voltar ao início</button>
+</div>
+
+<!-- Histórico -->
+<h2>Histórico de Confrontos</h2>
+<table id="history-table">
+<thead><tr><th>Rodada</th><th>Confronto</th><th>Vencedor</th><th>Jogador</th></tr></thead>
+<tbody></tbody>
+</table>
+
+<audio id="winner-sound" src="https://cdn.pixabay.com/download/audio/2025/06/26/audio_0ef82a1331.mp3?filename=victory-chime-366449.mp3" preload="auto"></audio>
+
+<script>
+// Lista das 40 atrizes
+const seriesList=[
+{name:"Anda",img:"https://i.imgur.com/1.jpeg"},{name:"Pundao",img:"https://i.imgur.com/2.jpeg"},
+{name:"Arhoung",img:"https://i.imgur.com/3.jpeg"},{name:"Becky",img:"https://i.imgur.com/4.jpeg"},
+{name:"Bonnie",img:"https://i.imgur.com/5.jpeg"},{name:"Charlotte",img:"https://i.imgur.com/6.jpeg"},
+{name:"Su Bin",img:"https://i.imgur.com/7.jpeg"},{name:"Emi",img:"https://i.imgur.com/8.jpeg"},
+{name:"Engfa",img:"https://i.imgur.com/9.jpeg"},{name:"Enjoy",img:"https://i.imgur.com/10.jpeg"},
+{name:"Fay",img:"https://i.imgur.com/11.jpeg"},{name:"Faye",img:"https://i.imgur.com/12.jpeg"},
+{name:"Film",img:"https://i.imgur.com/13.jpeg"},{name:"Folk",img:"https://i.imgur.com/14.jpeg"},
+{name:"Freen",img:"https://i.imgur.com/15.jpeg"},{name:"Ginny",img:"https://i.imgur.com/16.jpeg"},
+{name:"Grace",img:"https://i.imgur.com/17.jpeg"},{name:"Jayna",img:"https://i.imgur.com/18.jpeg"},
+{name:"June",img:"https://i.imgur.com/19.jpeg"},{name:"June Nannirin",img:"https://i.imgur.com/20.jpeg"},
+{name:"Hye Ri",img:"https://i.imgur.com/21.jpeg"},{name:"Lingling",img:"https://i.imgur.com/22.jpeg"},
+{name:"Looksaew",img:"https://i.imgur.com/23.jpeg"},{name:"Lookmhee",img:"https://i.imgur.com/24.jpeg"},
+{name:"Love",img:"https://i.imgur.com/25.jpeg"},{name:"Mae",img:"https://i.imgur.com/26.jpeg"},
+{name:"May Yada",img:"https://i.imgur.com/27.jpeg"},{name:"Mewnich",img:"https://i.imgur.com/28.jpeg"},
+{name:"Milk",img:"https://i.imgur.com/29.jpeg"},{name:"Namtan",img:"https://i.imgur.com/30.jpeg"},
+{name:"Natt",img:"https://i.imgur.com/31.jpeg"},{name:"Neko",img:"https://i.imgur.com/32.jpeg"},
+{name:"Oaey",img:"https://i.imgur.com/33.jpeg"},{name:"Orm",img:"https://i.imgur.com/34.jpeg"},
+{name:"Ormsin",img:"https://i.imgur.com/35.jpeg"},{name:"P.amp",img:"https://i.imgur.com/36.jpeg"},
+{name:"Pitcha",img:"https://i.imgur.com/37.jpeg"},{name:"Shelly",img:"https://i.imgur.com/38.jpeg"},
+{name:"Sonya",img:"https://i.imgur.com/39.jpeg"},{name:"Yoko",img:"https://i.imgur.com/40.jpeg"}
+];
+
+let currentRound=[], nextRound=[], roundNumber=1, history=[], players=[], currentPlayerIndex=0;
+
+function shuffle(array){ return array.sort(()=>Math.random()-0.5); }
+
+const numPlayersSelect=document.getElementById("num-players");
+const playerNamesContainer=document.getElementById("player-names-container");
+
+numPlayersSelect.addEventListener("change",()=>{
+  playerNamesContainer.innerHTML="";
+  const n=parseInt(numPlayersSelect.value);
+  for(let i=0;i<n;i++){
+    const input=document.createElement("input");
+    input.placeholder=`Nome do jogador ${i+1}`;
+    input.id=`player-name-${i}`;
+    playerNamesContainer.appendChild(input);
+    playerNamesContainer.appendChild(document.createElement("br"));
+  }
+});
+
+document.getElementById("start-game-btn").onclick=()=>{
+  const n=parseInt(numPlayersSelect.value);
+  players=[];
+  for(let i=0;i<n;i++){
+    players.push({name:document.getElementById(`player-name-${i}`)?.value||`Player ${i+1}`});
+  }
+  document.getElementById("setup-container").style.display="none";
+  document.getElementById("round-title").style.display="block";
+  document.getElementById("series-container").style.display="flex";
+  currentRound=shuffle([...seriesList]);
+  nextRound=[];
+  roundNumber=1;
+  currentPlayerIndex=0;
+  updateRoundTitle();
+  startRound();
+};
+
+function resetGame(){
+  document.getElementById("setup-container").style.display="block";
+  document.getElementById("round-title").style.display="none";
+  document.getElementById("series-container").style.display="none";
+  document.getElementById("winner-container").style.display="none";
+  document.getElementById("back-btn").style.display="none";
+  history=[]; players=[]; currentRound=[]; nextRound=[]; roundNumber=1; currentPlayerIndex=0;
+  document.querySelector("#history-table tbody").innerHTML="";
+}
+
+function updateRoundTitle(){
+  if(players.length>1){
+    document.getElementById("round-title").innerText=`Rodada ${roundNumber} - Vez de ${players[currentPlayerIndex].name}`;
+  } else {
+    document.getElementById("round-title").innerText=`Rodada ${roundNumber}`;
+  }
+}
+
+function updateHistoryTable(){
+  const tbody=document.querySelector("#history-table tbody");
+  tbody.innerHTML="";
+  history.forEach(h=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${h.round}</td><td>${h.matchup}</td><td>${h.winner}</td><td>${h.player}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function startRound(){
+  if(currentRound.length===0 && nextRound.length===1){ showWinner(nextRound[0]); return;}
+  if(currentRound.length===0){ currentRound=shuffle(nextRound); nextRound=[]; roundNumber++; currentPlayerIndex=0; }
+  showPair();
+}
+
+function showPair(){
+    const container = document.getElementById("series-container");
+    container.innerHTML = "";
+    if(currentRound.length === 1){ 
+        nextRound.push(currentRound.pop());
+        startRound();
+        return;
+    }
+    const s1 = currentRound.pop();
+    const s2 = currentRound.pop();
+    container.appendChild(createSeriesCard(s1, s2));
+    container.appendChild(createSeriesCard(s2, s1));
+}
+
+function createSeriesCard(series, opponent){
+    const card = document.createElement("div");
+    card.className = "series-card";
+    card.onclick = ()=>{
+        nextRound.push(series);
+        const currentPlayer = players[currentPlayerIndex];
+        history.push({
+            round: roundNumber,
+            matchup: `${series.name} x ${opponent.name}`,
+            winner: series.name,
+            player: currentPlayer.name
+        });
+        updateHistoryTable();
+        if(players.length > 1){
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+        }
+        updateRoundTitle();
+        startRound();
+    };
+    const img = document.createElement("img");
+    img.src = series.img;
+    img.alt = series.name;
+    const p = document.createElement("p");
+    p.textContent = series.name;
+    card.appendChild(img);
+    card.appendChild(p);
+    return card;
+}
+
+function showWinner(series){
+    document.getElementById("series-container").style.display = "none";
+    const winnerContainer = document.getElementById("winner-container");
+    winnerContainer.style.display = "block";
+    document.getElementById("winner-name").textContent = series.name;
+    document.getElementById("winner-series-img").src = series.img;
+    document.getElementById("back-btn").style.display = "inline-block";
+    const sound = document.getElementById("winner-sound");
+    sound.currentTime = 0;
+    sound.play();
+    setInterval(()=>createFirework(),70);
+    setInterval(()=>createParticle(),70);
+}
+
+function createFirework(){
+    const f = document.createElement("div");
+    f.className = "firework";
+    const colors=["#FFD700","#FF4500","#00BFFF","#FF69B4","#7CFC00","#ADFF2F","#FF6347"];
+    f.style.backgroundColor = colors[Math.floor(Math.random()*colors.length)];
+    const x=(Math.random()*window.innerWidth - window.innerWidth/2)+"px";
+    const y=(Math.random()*window.innerHeight - window.innerHeight/2)+"px";
+    f.style.setProperty('--x',x);
+    f.style.setProperty('--y',y);
+    document.body.appendChild(f);
+    setTimeout(()=>f.remove(),1200);
+}
+
+function createParticle(){
+    const p = document.createElement("div");
+    p.className = "particle";
+    const colors=["#FFD700","#FF4500","#00BFFF","#FF69B4","#7CFC00","#ADFF2F","#FF6347"];
+    p.style.backgroundColor = colors[Math.floor(Math.random()*colors.length)];
+    p.style.left = Math.random()*window.innerWidth+"px";
+    p.style.top = "-10px";
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),2000);
+}
+</script>
+</body>
+</html>
